@@ -1,0 +1,100 @@
+* {
+
+}
+
+QHeaderView{
+
+}
+QHeaderView::section{
+    font-size:16px;
+    color:#00FFFF;
+    background:#1b1e1e;
+}
+
+QTableWidget
+{
+    font-size:16px;
+    color:#ffffff;
+    alternate-background-color:#3c4142;
+}
+
+QLabel
+{
+    color:#00FFFF;
+}
+
+QStackedWidget
+{
+
+}
+
+QCheckBox
+{
+    color:#ffffff;
+}
+
+QGroupBox#groupBox_head
+{
+    border:none;
+}
+
+QGroupBox#groupBox_table
+{
+    border:none;
+}
+
+QGroupBox#groupBox_Properties
+{
+     color:#ffffff;
+     background-color:#000000;
+
+}
+
+QPushButton
+{
+    color:#ffffff;
+    border:2px groove gray;
+    border-radius:10px;
+    padding:2px 4px;
+}
+
+QToolButton
+{
+    color:#ffffff;
+    border:2px groove gray;
+    border-radius:10px;
+    padding:2px 4px;
+}
+
+QSpinBox
+{
+    color:#ffffff;
+}
+
+QLineEdit
+{
+    color:#ffffff;
+    border:2px groove gray;
+    border-radius:10px;
+    padding:2px 4px;
+}
+
+QComboBox
+{
+    color:#ffffff;
+}
+
+
+QTabWidget::pane
+{
+    border: -1px;
+    top:-2px;
+    left: 1px;
+}
+
+QTabBar::tab
+{
+    min-width:20px;
+    min-height:27px;
+
+}
