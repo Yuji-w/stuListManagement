@@ -71,8 +71,6 @@ public:
 private:
     void changeComboBox(int index);
 
-    void addData();
-
     void setFormsShow(int currPage,int t_row);
 
     bool isChangePage(int listLenth,int rowValue);
@@ -88,6 +86,8 @@ private:
     int getRowVaule();
 
 private slots:
+    void addData();
+
     int getFirstPage();
     int getPrePage();
     int getNextPage();

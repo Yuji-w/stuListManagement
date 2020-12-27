@@ -113,6 +113,7 @@ MainWindow::~MainWindow()
  */
 void MainWindow::addData()
 {
+    qDebug()<<QString("error");
     //根据实际需要创建对象
     if(ui->comboBox->currentIndex() == 1)
     {
