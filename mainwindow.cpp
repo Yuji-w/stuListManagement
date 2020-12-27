@@ -206,8 +206,6 @@ void MainWindow::setTabBackGround()
 
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-
-
 }
 
 void MainWindow::changeComboBox(int index)
@@ -250,7 +248,8 @@ void MainWindow::slotOpenFile()
             t_lin.removeFirst();
             qDebug()<<t_lin.at(1);
 
-
+            if(ui->comboBox->currentIndex() == 0)
+            {
             for(int index=0;index<t_lin.count();index++)
             {
                 QString t_line = t_lin.at(index);
@@ -262,6 +261,21 @@ void MainWindow::slotOpenFile()
                 t_stu.setNum(lineList.at(3).toInt());
                 t_stu.setPer(lineList.at(4));
                 S_list.append(t_stu);
+            }
+            }
+            else
+            {
+                Energer t_eng;
+                for(int index=0;index<t_lin.count();index++)
+                {
+                    QString t_line = t_lin.at(index);
+                    QStringList lineList = t_line.split(",");
+                    t_eng.m_s_name = lineList.at(0);
+                    t_eng.m_s_sex = lineList.at(1);
+                    t_eng.m_i_age = lineList.at(2).toInt();
+                    t_eng.setWorkAge(lineList.at(3).toInt());
+                    E_list.append(t_eng);
+                }
             }
             getFirstPage();
         }
@@ -285,12 +299,12 @@ void MainWindow::chooseRow()
  */
 void MainWindow::slotDelRow()
 {
+    int t_row = ui->spinBox_rowCount->value();
     getThisPage();
     if(ui->comboBox->currentIndex()==0)
     {
         if(informationMessage())
         {
-            int t_row = ui->spinBox_rowCount->value();
             int t_del = ui->tableWidget->currentRow();
             ui->tableWidget->removeRow(t_del);
             ui->tableWidget->setRowCount(t_row);
@@ -309,7 +323,14 @@ void MainWindow::slotDelRow()
         {
             int t_enu = ui->tableWidget_2->currentRow();
             ui->tableWidget_2->removeRow(t_enu);
-            E_list.removeAt(t_enu+(m_i_currPage-1)*10);
+            ui->tableWidget_2->setRowCount(t_row);
+            E_list.removeAt(t_enu+(m_i_currPage-1)*t_row);
+            if(E_list.size() % t_row == 0)
+            {
+                m_i_currPage = m_i_currPage - 1;
+                setFormsShow(m_i_currPage,getRowVaule());
+                getALtogePage(getRowVaule());
+            }
         }
     }
 }
@@ -459,6 +480,8 @@ void MainWindow::slotSaveFile()
     }
     else
     {
+        if(ui->comboBox->currentIndex() == 0)
+        {
         QTextStream out(&file);
         QString t_item;
         QString t_head=("姓名,性别,年龄,学号,专业");
@@ -469,7 +492,20 @@ void MainWindow::slotSaveFile()
             t_item = ui->tableWidget->item(t_row,i)->text();
             out << t_item <<QString(",")<<QString("    ");
         }
-
+        }
+        else
+        {
+            QTextStream out(&file);
+            QString t_item;
+            QString t_head=("姓名,性别,年龄,工龄");
+            out << t_head<< "\n";
+            for (int i = 0; i<ui->tableWidget_2->columnCount(); i++)
+            {
+                int t_row = ui->tableWidget_2->currentRow();
+                t_item = ui->tableWidget_2->item(t_row,i)->text();
+                out << t_item <<QString(",")<<QString("    ");
+            }
+        }
     }
 }
 
