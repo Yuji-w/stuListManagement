@@ -168,6 +168,8 @@ void MainWindow::addData()
             ui->tableWidget_2->clearContents();
             m_i_currPage += 1;
         }
+        setFormsShow(m_i_currPage,getRowVaule());
+        getALtogePage(getRowVaule());
     }
 }
 
@@ -194,12 +196,18 @@ bool MainWindow::isChangePage(int listLenth,int rowValue)
 void MainWindow::setTabBackGround()
 {
     ui->tableWidget->setShowGrid(false);
+    ui->tableWidget_2->setShowGrid(false);
 
     ui->tableWidget->setAlternatingRowColors(true);
+    ui->tableWidget_2->setAlternatingRowColors(true);
 
     ui->tableWidget->verticalHeader()->setVisible(false);
+    ui->tableWidget_2->verticalHeader()->setVisible(false);
 
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+
 }
 
 void MainWindow::changeComboBox(int index)
@@ -266,7 +274,10 @@ void MainWindow::slotOpenFile()
 void MainWindow::chooseRow()
 {
     ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tableWidget_2->setSelectionBehavior(QAbstractItemView::SelectRows);
+
     ui->tableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    ui->tableWidget_2->setSelectionMode(QAbstractItemView::ExtendedSelection);
 }
 
 /**
@@ -334,7 +345,10 @@ void MainWindow::setRightClickMenu()
     m_pButtonMenu->addAction(m_pDelAction);
 
     ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->tableWidget_2->setContextMenuPolicy(Qt::CustomContextMenu);
+
     connect(ui->tableWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(slotContextMenu(QPoint)));
+    connect(ui->tableWidget_2, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(slotContextMenu(QPoint)));
 }
 
 int MainWindow::getRowVaule()
@@ -344,10 +358,21 @@ int MainWindow::getRowVaule()
 
 void MainWindow::slotContextMenu(QPoint pos)
 {
-    auto index = ui->tableWidget->indexAt(pos);
-    if (index.isValid())
+    if(ui->comboBox->currentIndex()==0)
     {
-        m_pButtonMenu->exec(QCursor::pos());
+        auto index = ui->tableWidget->indexAt(pos);
+        if (index.isValid())
+        {
+            m_pButtonMenu->exec(QCursor::pos());
+        }
+    }
+    else
+    {
+        auto index = ui->tableWidget_2->indexAt(pos);
+        if (index.isValid())
+        {
+            m_pButtonMenu->exec(QCursor::pos());
+        }
     }
 }
 
@@ -463,16 +488,31 @@ int MainWindow::getThisPage()
  */
 int MainWindow::getALtogePage(int t_row)
 {
-
-    if(S_list.size() % t_row != 0)
+    if(ui->comboBox->currentIndex() == 0)
     {
-        m_i_stuPage = S_list.size() / t_row+1;
+        if(S_list.size() % t_row != 0)
+        {
+            m_i_stuPage = S_list.size() / t_row+1;
+        }
+        else
+        {
+            m_i_stuPage = S_list.size() / t_row;
+        }
+        return m_i_stuPage;
     }
     else
     {
-        m_i_stuPage = S_list.size() / t_row;
+        if(E_list.size() % t_row != 0)
+        {
+            m_i_engPage = E_list.size() / t_row+1;
+        }
+        else
+        {
+            m_i_engPage = E_list.size() / t_row;
+        }
+        return  m_i_engPage;
     }
-    return m_i_stuPage;
+
 }
 
 /**
