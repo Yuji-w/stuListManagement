@@ -1,4 +1,4 @@
-QT       += core gui svg
+QT       += core gui svg sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -29,6 +29,7 @@ SOURCES += \
     mainwindow.cpp
 
 HEADERS += \
+    connectDb.h \
     mainwindow.h
 
 FORMS += \

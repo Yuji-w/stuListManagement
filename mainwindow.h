@@ -69,24 +69,19 @@ public:
     ~MainWindow();
 
 private:
-    void changeComboBox(int index);
-
-    void setFormsShow(int currPage,int t_row);
-
-    bool isChangePage(int listLenth,int rowValue);
-
-    void chooseRow();
-
-    bool informationMessage();
-
-    void setTabBackGround();
-
-    void setRightClickMenu();
-
     int getRowVaule();
 
+    void changeComboBox(int index);
+    void setFormsShow(int currPage,int t_row);
+    void chooseRow();
+    void setTabBackGround();
+    void setRightClickMenu();
+
+    bool isChangePage(int listLenth,int rowValue);
+    bool informationMessage();
+
 private slots:
-    void addData();
+    void slotAddData();
 
     int getFirstPage();
     int getPrePage();
@@ -101,10 +96,13 @@ private slots:
     void slotFileList(QTableWidgetItem *item);
     void slotMoreAdd();
     void slotChangeTab(int index);
+    void slotChangeCombox(int index);
     bool slotEngSex();
     bool slotSex();
     void slotContextMenu(QPoint pos);
     int  slotChangeRow();
+
+    bool slotConnect();
 
 private:
     Ui::MainWindow *ui;

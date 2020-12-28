@@ -23,9 +23,8 @@
 #include <QButtonGroup>
 #include <QDesktopServices>
 #include <QUrl>
-#include <QAxObject>
 #include <QDateTime>
-#include <iostream>
+#include <QSqlDatabase>
 
 #define DEFAULT_PAGE_NUM 10
 
@@ -42,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_pLableMenu = new QMenu(this);
 
     m_i_currPage = 0;
+
 
     ui->tableWidget->setRowCount(DEFAULT_PAGE_NUM);
     ui->tableWidget_2->setRowCount(DEFAULT_PAGE_NUM);
@@ -64,12 +64,18 @@ MainWindow::MainWindow(QWidget *parent)
     /**
      * @brief 添加数据
      */
-    connect(ui->addButton,SIGNAL(clicked()),this,SLOT(addData()));
+    connect(ui->addButton,SIGNAL(clicked()),this,SLOT(slotAddData()));
 
+    connect(ui->pushButton_connect,SIGNAL(clicked()),this,SLOT(slotConnect()));
     /**
      * @brief 点击选项卡切换tab面板
      */
     connect(ui->tabWidget_2,SIGNAL(currentChanged(int)),this,SLOT(slotChangeTab(int)));
+    connect(ui->comboBox,SIGNAL(activated(int)),this,SLOT(slotChangeCombox(int)));
+
+    /**
+     * @brief 切换表格显示行数
+     */
     connect(ui->spinBox_rowCount,SIGNAL(editingFinished()),this,SLOT(slotChangeRow()));
 
     /**
@@ -80,9 +86,15 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->BackButton,SIGNAL(clicked()),this,SLOT(getPrePage()));
     connect(ui->LastButton,SIGNAL(clicked()),this,SLOT(getLastPage()));
 
+    /**
+     * @brief 文件操作
+     */
     connect(ui->OpenButton,SIGNAL(clicked()),this,SLOT(slotOpenFile()));
     connect(ui->pushButton_save,SIGNAL(clicked()),this,SLOT(slotSaveFile()));
 
+    /**
+     * @brief 删除
+     */
     connect(ui->delButton,SIGNAL(clicked()),this,SLOT(slotDelRow()));
     connect(ui->toolButton_add,SIGNAL(clicked()),this,SLOT(slotMoreAdd()));
 
@@ -111,7 +123,7 @@ MainWindow::~MainWindow()
 /**
  * @brief 将添加数据添加至链表
  */
-void MainWindow::addData()
+void MainWindow::slotAddData()
 {
     qDebug()<<QString("error");
     //根据实际需要创建对象
@@ -148,11 +160,9 @@ void MainWindow::addData()
         t_stu.setPer(ui->s_PreEdit->text());
         S_list.append(t_stu);
     }
-
-    int t_e_len = E_list.size();
-    int t_s_len = S_list.size();
-    if(ui->comboBox->currentIndex()==0)
+    if(ui->comboBox->currentIndex() == 0)
     {
+        int t_s_len = S_list.size();
         if(isChangePage(t_s_len,getRowVaule()))
         {
             ui->tableWidget->clearContents();
@@ -163,6 +173,7 @@ void MainWindow::addData()
     }
     else
     {
+        int t_e_len = E_list.size();
         if(isChangePage(t_e_len,getRowVaule()))
         {
             ui->tableWidget_2->clearContents();
@@ -180,7 +191,7 @@ void MainWindow::addData()
  */
 bool MainWindow::isChangePage(int listLenth,int rowValue)
 {
-    if( listLenth % rowValue ==1 && listLenth != 1)
+    if( listLenth % rowValue == 1 && listLenth != 1)
     {
         return true;
     }
@@ -206,6 +217,9 @@ void MainWindow::setTabBackGround()
 
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+    ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tableWidget_2->setEditTriggers(QAbstractItemView::NoEditTriggers);
 }
 
 void MainWindow::changeComboBox(int index)
@@ -250,18 +264,24 @@ void MainWindow::slotOpenFile()
 
             if(ui->comboBox->currentIndex() == 0)
             {
-            for(int index=0;index<t_lin.count();index++)
-            {
-                QString t_line = t_lin.at(index);
-                QStringList lineList = t_line.split(",");
+                for(int index=0;index<t_lin.count();index++)
+                {
+                    QString t_line = t_lin.at(index);
+                    QStringList lineList = t_line.split(",");
 
-                t_stu.m_s_name = lineList.at(0);
-                t_stu.m_s_sex = lineList.at(1);
-                t_stu.m_i_age = lineList.at(2).toInt();
-                t_stu.setNum(lineList.at(3).toInt());
-                t_stu.setPer(lineList.at(4));
-                S_list.append(t_stu);
-            }
+                    if(lineList.length() != 5)
+                    {
+                        qDebug()<<QString("111");
+                        return;
+                    }
+
+                    t_stu.m_s_name = lineList.at(0);
+                    t_stu.m_s_sex = lineList.at(1);
+                    t_stu.m_i_age = lineList.at(2).toInt();
+                    t_stu.setNum(lineList.at(3).toInt());
+                    t_stu.setPer(lineList.at(4));
+                    S_list.append(t_stu);
+                }
             }
             else
             {
@@ -299,7 +319,6 @@ void MainWindow::chooseRow()
  */
 void MainWindow::slotDelRow()
 {
-    int t_row = ui->spinBox_rowCount->value();
     getThisPage();
     if(ui->comboBox->currentIndex()==0)
     {
@@ -307,9 +326,9 @@ void MainWindow::slotDelRow()
         {
             int t_del = ui->tableWidget->currentRow();
             ui->tableWidget->removeRow(t_del);
-            ui->tableWidget->setRowCount(t_row);
-            S_list.removeAt(t_del+(m_i_currPage-1)*t_row);
-            if(S_list.size() % t_row == 0)
+            ui->tableWidget->setRowCount(getRowVaule());
+            S_list.removeAt(t_del+(m_i_currPage-1)*getRowVaule());
+            if(S_list.size() % getRowVaule() == 0)
             {
                 m_i_currPage = m_i_currPage - 1;
                 setFormsShow(m_i_currPage,getRowVaule());
@@ -323,9 +342,9 @@ void MainWindow::slotDelRow()
         {
             int t_enu = ui->tableWidget_2->currentRow();
             ui->tableWidget_2->removeRow(t_enu);
-            ui->tableWidget_2->setRowCount(t_row);
-            E_list.removeAt(t_enu+(m_i_currPage-1)*t_row);
-            if(E_list.size() % t_row == 0)
+            ui->tableWidget_2->setRowCount(getRowVaule());
+            E_list.removeAt(t_enu+(m_i_currPage-1)*getRowVaule());
+            if(E_list.size() % getRowVaule() == 0)
             {
                 m_i_currPage = m_i_currPage - 1;
                 setFormsShow(m_i_currPage,getRowVaule());
@@ -407,16 +426,37 @@ int MainWindow::slotChangeRow()
     return m_i_cgRow;
 }
 
+
+/**
+ * @brief 数据库连接
+ * @return
+ */
+bool MainWindow::slotConnect()
+{
+    qDebug()<<QString("11");
+    QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
+    db.setHostName("localhost");
+    db.setUserName("root");
+    db.setPassword("123123");
+    db.setDatabaseName("stumanagement");
+    if (!db.open()) {
+        QMessageBox::critical(nullptr, QObject::tr("无法连接"),
+                              QObject::tr("连接失败"), QMessageBox::Cancel);
+        return false;
+    }
+}
+
 /**
  * @brief 输入框显示表格数据
  * @param item
  */
 void MainWindow::slotFileList(QTableWidgetItem *item)
 {
+
     int itemRow = item->row();
 
     Student Sli;
-    Sli.m_s_name =  ui->tableWidget->item(itemRow,0)->text();
+    Sli.m_s_name = ui->tableWidget->item(itemRow,0)->text();
     Sli.m_i_age = ui->tableWidget->item(itemRow,2)->text().toInt();
 
     int num = Sli.getNum();
@@ -449,7 +489,7 @@ void MainWindow::slotMoreAdd()
     int t_number = ui->lineEdit_add->text().toInt();
     for (int i = 0;i < t_number;i++)
     {
-        addData();
+        slotAddData();
     }
 }
 
@@ -460,6 +500,12 @@ void MainWindow::slotMoreAdd()
 void MainWindow::slotChangeTab(int index)
 {
     ui->comboBox->setCurrentIndex(index);
+    ui->stackedWidget->setCurrentIndex(index);
+}
+
+void MainWindow::slotChangeCombox(int index)
+{
+    ui->tabWidget_2->setCurrentIndex(index);
     ui->stackedWidget->setCurrentIndex(index);
 }
 
@@ -482,16 +528,16 @@ void MainWindow::slotSaveFile()
     {
         if(ui->comboBox->currentIndex() == 0)
         {
-        QTextStream out(&file);
-        QString t_item;
-        QString t_head=("姓名,性别,年龄,学号,专业");
-        out << t_head<< "\n";
-        for (int i = 0; i<ui->tableWidget->columnCount(); i++)
-        {
-            int t_row = ui->tableWidget->currentRow();
-            t_item = ui->tableWidget->item(t_row,i)->text();
-            out << t_item <<QString(",")<<QString("    ");
-        }
+            QTextStream out(&file);
+            QString t_item;
+            QString t_head=("姓名,性别,年龄,学号,专业");
+            out << t_head<< "\n";
+            for (int i = 0; i<ui->tableWidget->columnCount(); i++)
+            {
+                int t_row = ui->tableWidget->currentRow();
+                t_item = ui->tableWidget->item(t_row,i)->text();
+                out << t_item <<QString(",")<<QString("    ");
+            }
         }
         else
         {
@@ -721,7 +767,6 @@ void MainWindow::setFormsShow(int page,int t_row)
                 return;
             }
         }
-
         case 0:
         {
             if(row<S_list.size())
@@ -760,3 +805,4 @@ void MainWindow::setFormsShow(int page,int t_row)
         }
     }
 }
+
