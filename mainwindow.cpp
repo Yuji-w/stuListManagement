@@ -24,7 +24,9 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QDateTime>
+#include <QSqlError>
 #include <QSqlDatabase>
+#include <QSqlQuery>
 
 #define DEFAULT_PAGE_NUM 10
 
@@ -437,12 +439,21 @@ bool MainWindow::slotConnect()
     QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
     db.setHostName("localhost");
     db.setUserName("root");
-    db.setPassword("123123");
-    db.setDatabaseName("stumanagement");
-    if (!db.open()) {
+    db.setPassword("123456");
+    db.setDatabaseName("stu_manage");
+    if (!db.open())
+    {
+        qDebug()<<db.lastError();
         QMessageBox::critical(nullptr, QObject::tr("无法连接"),
                               QObject::tr("连接失败"), QMessageBox::Cancel);
         return false;
+    }
+    else
+    {
+        qDebug()<<QString("sesscuse");
+        dataQuery();
+        setFormsShow(getThisPage(),getRowVaule());
+        getFirstPage();
     }
 }
 
@@ -806,3 +817,21 @@ void MainWindow::setFormsShow(int page,int t_row)
     }
 }
 
+
+Student MainWindow::dataQuery()
+{
+    Student stu;
+    QString cmd;
+    QSqlQuery query;
+    query.exec("SELECT * from student;");
+    while(query.next())
+    {
+        stu.m_s_name = query.value(0).toString();
+        stu.m_s_sex = query.value(1).toString();
+        stu.m_i_age = query.value(2).toInt();
+        stu.setNum(query.value(3).toInt());
+        stu.setPer(query.value(4).toString());
+        S_list.append(stu);
+    }
+    return stu;
+}

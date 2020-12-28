@@ -80,6 +80,8 @@ private:
     bool isChangePage(int listLenth,int rowValue);
     bool informationMessage();
 
+    Student dataQuery();
+
 private slots:
     void slotAddData();
 
