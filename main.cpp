@@ -11,12 +11,18 @@
 #include <QLayout>
 #include <QTabWidget>
 #include <QFile>
+#include <QTextCodec>
 
 #include <QSettings>  //模块化读取文件
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    QTextCodec::setCodecForLocale(QTextCodec::codecForName("utf-8"));
+
+
+
     MainWindow w;
     QFile qssFile(":/style.qss");
     qssFile.open(QFile::ReadOnly);
@@ -26,6 +32,8 @@ int main(int argc, char *argv[])
         qApp->setStyleSheet(qss);
         qssFile.close();
     }
+
+
 
     w.show();
 

@@ -1,24 +1,34 @@
 #ifndef PAGESHOW_H
 #define PAGESHOW_H
 
+#include <QMainWindow>
 
-//class PageShow{
-//public:
-//    PageShow();
-//    ~PageShow();
+class pageShow : public QMainWindow
+{
+    Q_OBJECT
+public:
+    explicit pageShow()
+    {
 
-//    const int getFirstPage();
-//    const int getPrePage();
-//    const int getNextPage();
-//    const int getLastPage();
-//    const int getThisPage();
-//    const int getALtogePage();
-//private:
-//    int perPageShow;   //每页显示的条数
-//    int totalNums;     // 总条数
-//    int totalPages;    //总页数
-//    int currPage;      //当前页数
-//};
+    }
+    ~pageShow();
+
+private:
+
+
+private slots:
+    int getFirstPage();
+    int getPrePage();
+    int getNextPage();
+    int getLastPage();
+    int getThisPage();
+    int getALtogePage(int value);
+
+};
+
+
+
+
 
 
 

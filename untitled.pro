@@ -30,7 +30,8 @@ SOURCES += \
 
 HEADERS += \
     connectDb.h \
-    mainwindow.h
+    mainwindow.h \
+    pageShow.h
 
 FORMS += \
     mainwindow.ui

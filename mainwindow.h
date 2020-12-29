@@ -17,6 +17,7 @@ class Person
 public:
     Person(){
     };
+
     QString m_s_name;
     int m_i_age;
     QString m_s_sex;
@@ -80,7 +81,8 @@ private:
     bool isChangePage(int listLenth,int rowValue);
     bool informationMessage();
 
-    Student dataQuery();
+    Student sqlDataQuery();
+    bool isInsertData(Student stu);
 
 private slots:
     void slotAddData();
@@ -96,7 +98,7 @@ private slots:
     void slotSaveFile();
     void slotDelRow();
     void slotFileList(QTableWidgetItem *item);
-    void slotMoreAdd();
+    void slotAddMore();
     void slotChangeTab(int index);
     void slotChangeCombox(int index);
     bool slotEngSex();
@@ -104,7 +106,7 @@ private slots:
     void slotContextMenu(QPoint pos);
     int  slotChangeRow();
 
-    bool slotConnect();
+    bool isConnectSql();
 
 private:
     Ui::MainWindow *ui;
@@ -116,6 +118,7 @@ private:
 
     QMenu *m_pButtonMenu;
     QMenu *m_pLableMenu;
+    QMenu *m_pSqlMenu;
 
     QButtonGroup *m_pStuSexGroup;
     QButtonGroup *m_pEngSexGroup;
