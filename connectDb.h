@@ -1,30 +1,29 @@
 #ifndef CONNECTDB_H
 #define CONNECTDB_H
 
+#include "mainwindow.h"
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QMessageBox>
 #include <QDebug>
+#include <QSqlError>
 
-bool connectData(){
+class Student;
+class ConnectDb
+{
+public:
+    explicit ConnectDb()
     {
-        qDebug()<<QString("11");
-        QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
-        db.setHostName("localhost");
-        db.setUserName("root");
-        db.setPassword("123123");
-        db.setDatabaseName("stumanagement");
-        if (!db.open()) {
-            QMessageBox::critical(nullptr, QObject::tr("Cannot open database"),
-                                  QObject::tr("Unable to establish a database connection"), QMessageBox::Cancel);
-            return false;
-        }
     }
-}
+    ~ConnectDb();
 
+public:
+    bool isConnectSql();
+    QList<Student> queryStuDataList();
+    bool isInsertData(Student stu);
 
-
-
-
+private:
+    Student *m_pStudent;
+};
 
 #endif // CONNECTDB_H

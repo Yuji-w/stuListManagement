@@ -27,7 +27,7 @@
        <string/>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="1" column="0">
+       <item row="0" column="0">
         <widget class="QLabel" name="label">
          <property name="styleSheet">
           <string notr="true">color: rgb(255, 255, 255);
@@ -38,26 +38,6 @@ font: 87 26pt &quot;Arial&quot;;
           <string>学生管理平台</string>
          </property>
         </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QPushButton" name="pushButton_connect">
-         <property name="text">
-          <string>连接</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
        </item>
       </layout>
      </widget>
@@ -530,7 +510,7 @@ font: 87 26pt &quot;Arial&quot;;
           </attribute>
           <layout class="QGridLayout" name="gridLayout_3">
            <item row="0" column="0">
-            <widget class="QTableWidget" name="tableWidget">
+            <widget class="QTableWidget" name="tableWidget_stu">
              <property name="styleSheet">
               <string notr="true">background-color: rgb(38, 43, 44);</string>
              </property>
@@ -569,7 +549,7 @@ font: 87 26pt &quot;Arial&quot;;
           </attribute>
           <layout class="QGridLayout" name="gridLayout_4">
            <item row="0" column="0" colspan="2">
-            <widget class="QTableWidget" name="tableWidget_2">
+            <widget class="QTableWidget" name="tableWidget_eng">
              <column>
               <property name="text">
                <string>姓名</string>
@@ -602,6 +582,28 @@ font: 87 26pt &quot;Arial&quot;;
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1170</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuSQL">
+    <property name="title">
+     <string>SQL</string>
+    </property>
+    <addaction name="Menu_sql"/>
+   </widget>
+   <addaction name="menuSQL"/>
+  </widget>
+  <action name="Menu_sql">
+   <property name="text">
+    <string>connect</string>
+   </property>
+  </action>
  </widget>
  <tabstops>
   <tabstop>addButton</tabstop>

@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "pageShow.h"
+#include "connectDb.h"
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
@@ -9,25 +11,14 @@
 #include <QTabWidget>
 #include <QComboBox>
 #include <QList>
-#include <QTextCodec>
 #include <QFileDialog>
-#include <iostream>
-#include <fstream>
 #include <QContextMenuEvent>
 #include <QAction>
 #include <QCursor>
-#include <QMessageBox>
 #include <QDialog>
 #include <QDebug>
 #include <QCheckBox>
 #include <QButtonGroup>
-#include <QDesktopServices>
-#include <QUrl>
-#include <QDateTime>
-#include <QSqlError>
-#include <QSqlDatabase>
-#include <QSqlQuery>
-#include <QTextCodec>
 
 #define DEFAULT_PAGE_NUM 10
 
@@ -37,19 +28,20 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    m_pSaveAction = new QAction(tr("保存"),this);
-    m_pDelAction = new QAction(tr("删除"),this);
+    m_pSaveAction = new QAction(tr("save"),this);  //保存
+    m_pDelAction = new QAction(tr("del"),this);    //删除
 
     m_pButtonMenu = new QMenu(this);
-    m_pLableMenu = new QMenu(this);
 
-    m_i_currPage = 0;
+    m_pPageShowStu = new PageShow;
+    m_pPageShowEng = new PageShow;
+    m_pConnectDb = new ConnectDb;
 
+    m_pPageShowStu->setcurrPage();
+    m_pPageShowEng->setcurrPage();
 
-
-
-    ui->tableWidget->setRowCount(DEFAULT_PAGE_NUM);
-    ui->tableWidget_2->setRowCount(DEFAULT_PAGE_NUM);
+    ui->tableWidget_stu->setRowCount(DEFAULT_PAGE_NUM);
+    ui->tableWidget_eng->setRowCount(DEFAULT_PAGE_NUM);
     ui->spinBox_rowCount->setValue(DEFAULT_PAGE_NUM);
 
     m_pStuSexGroup = new QButtonGroup(this);
@@ -62,19 +54,18 @@ MainWindow::MainWindow(QWidget *parent)
     m_pEngSexGroup->addButton(ui->engWoman,1);
     ui->engMan->setChecked(true);
 
+    m_i_stuPage = m_pPageShowStu->getThisPage();
+    m_i_engPage = m_pPageShowEng->getThisPage();
+
     chooseRow();
     setRightClickMenu();
     setTabBackGround();
 
-    /**
-     * @brief 添加数据
-     */
+    //添加数据
     connect(ui->addButton,SIGNAL(clicked()),this,SLOT(slotAddData()));
+    connect(ui->Menu_sql,SIGNAL(triggered()),this,SLOT(slotConnectSql()));
 
-    connect(ui->pushButton_connect,SIGNAL(clicked()),this,SLOT(isConnectSql()));
-    /**
-     * @brief 点击选项卡切换tab面板
-     */
+    //点击选项卡切换tab面板
     connect(ui->tabWidget_2,SIGNAL(currentChanged(int)),this,SLOT(slotChangeTab(int)));
     connect(ui->comboBox,SIGNAL(activated(int)),this,SLOT(slotChangeCombox(int)));
 
@@ -86,10 +77,10 @@ MainWindow::MainWindow(QWidget *parent)
     /**
      * @brief 页数操作
      */
-    connect(ui->BeginButton,SIGNAL(clicked()),this,SLOT(getFirstPage()));
-    connect(ui->NextButton,SIGNAL(clicked()),this,SLOT(getNextPage()));
-    connect(ui->BackButton,SIGNAL(clicked()),this,SLOT(getPrePage()));
-    connect(ui->LastButton,SIGNAL(clicked()),this,SLOT(getLastPage()));
+    connect(ui->BeginButton,SIGNAL(clicked()),this,SLOT(slotFirstPage()));
+    connect(ui->NextButton,SIGNAL(clicked()),this,SLOT(slotNextPage()));
+    connect(ui->BackButton,SIGNAL(clicked()),this,SLOT(slotPrePage()));
+    connect(ui->LastButton,SIGNAL(clicked()),this,SLOT(slotLastPage()));
 
     /**
      * @brief 文件操作
@@ -103,7 +94,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->delButton,SIGNAL(clicked()),this,SLOT(slotDelRow()));
     connect(ui->toolButton_add,SIGNAL(clicked()),this,SLOT(slotAddMore()));
 
-    connect(ui->tableWidget,SIGNAL(itemClicked(QTableWidgetItem*)),this,SLOT(slotFileList(QTableWidgetItem*)));
+    connect(ui->tableWidget_stu,SIGNAL(itemClicked(QTableWidgetItem*)),this,SLOT(slotStuFileList(QTableWidgetItem*)));
+    connect(ui->tableWidget_eng,SIGNAL(itemClicked(QTableWidgetItem*)),this,SLOT(slotEngFileList(QTableWidgetItem*)));
 
     /**
      * @brief 添加性别
@@ -130,9 +122,7 @@ MainWindow::~MainWindow()
  */
 void MainWindow::slotAddData()
 {
-    qDebug()<<QString("error");
-
-    QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL","mysql");
+    //    QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL","mysql");
     //    if (QSqlDatabase::contains("mysql"))
     //    {
     //        db = QSqlDatabase::database("mysql");
@@ -142,84 +132,62 @@ void MainWindow::slotAddData()
     //        db = QSqlDatabase::addDatabase("QMYSQL", "mysql");
     //    }
     //根据实际需要创建对象
-    if(ui->comboBox->currentIndex() == 1)
-    {
-        Energer t_eng;
-        if(slotEngSex() == 1)
-        {
-            t_eng.m_s_sex = ui->engMan->text();
-        }
-        else
-        {
-            t_eng.m_s_sex = ui->engWoman->text();
-        }
-        t_eng.m_s_name = ui->e_NameEdit->text();
-        t_eng.m_i_age = ui->e_AgeEdit->text().toInt();
-        t_eng.setWorkAge(ui->e_WorkAgeEdit->text().toInt());
-        E_list.append(t_eng);
-    }
-    else
+    if(ui->comboBox->currentIndex() == 0)    //判断当前是否为学生类 0为学生类，1为程序员类
     {
         Student t_stu;
-        if(slotSex() == 1)
+        if(slotSex() == Student::man)              //获取性别 1为男性  TODO:性别使用枚举类型
         {
-            t_stu.m_s_sex = ui->checkBox_man->text();
+            t_stu.m_sex = (Person::ChooseSex)ui->checkBox_man->text().toInt();
         }
         else
         {
-            t_stu.m_s_sex = ui->checkBox_woman->text();
+            t_stu.m_sex = (Person::ChooseSex)ui->checkBox_woman->text().toInt();
         }
         t_stu.m_s_name = ui->s_NameEdit->text();
         t_stu.m_i_age = ui->s_AgeEdit->text().toInt();
         t_stu.setNum(ui->s_NumEdit->text().toInt());
         t_stu.setPer(ui->s_PreEdit->text());
-        if(db.open())
-        {
-            qDebug()<<QString("打开");
-            isInsertData(t_stu);
-            // setFormsShow(getThisPage(),getRowVaule());
-        }
-        S_list.append(t_stu);
+        S_list.append(t_stu);    //将数据添加进链表
     }
-    if(ui->comboBox->currentIndex() == 0)
+    else
+    {
+        Energer t_eng;
+        if(slotEngSex() == 1)
+        {
+            t_eng.m_sex = (Person::ChooseSex)ui->engMan->text().toInt();
+        }
+        else
+        {
+            t_eng.m_sex =(Person::ChooseSex)ui->engWoman->text().toInt();
+        }
+        t_eng.m_s_name = ui->e_NameEdit->text();    //获取当前填写文字内容
+        t_eng.m_i_age = ui->e_AgeEdit->text().toInt();
+        t_eng.setWorkAge(ui->e_WorkAgeEdit->text().toInt());
+        E_list.append(t_eng);    //将已获取内容添加进链表
+    }
+    if(ui->comboBox->currentIndex() == 0)              //对学生类操作
     {
         int t_s_len = S_list.size();
-        if(isChangePage(t_s_len,getRowVaule()))
+        if(m_pPageShowStu->isChangePage(t_s_len,getRowVaule()))        //根据行数判断是否需要翻页
         {
-            ui->tableWidget->clearContents();
-            m_i_currPage += 1;
+            ui->tableWidget_stu->clearContents();
+            m_i_stuPage += 1;
         }
-        setFormsShow(m_i_currPage,getRowVaule());
-        getALtogePage(getRowVaule());
+        setFormsShow(m_i_stuPage,getRowVaule());           //在表格显示链表内容
+        m_pPageShowStu->getALtogePage(getRowVaule(),t_s_len);  //获取总页数
     }
-    else
+    else                                                //程序员类操作
     {
         int t_e_len = E_list.size();
-        if(isChangePage(t_e_len,getRowVaule()))
+        if(m_pPageShowEng->isChangePage(t_e_len,getRowVaule()))
         {
-            ui->tableWidget_2->clearContents();
-            m_i_currPage += 1;
+            ui->tableWidget_eng->clearContents();
+            m_i_engPage += 1;
         }
-        setFormsShow(m_i_currPage,getRowVaule());
-        getALtogePage(getRowVaule());
+        setFormsShow(m_i_engPage,getRowVaule());
+        m_pPageShowEng->getALtogePage(getRowVaule(),t_e_len);
     }
-}
-
-/**
- * @brief 判断是否换行
- * @param i_data
- * @return
- */
-bool MainWindow::isChangePage(int listLenth,int rowValue)
-{
-    if( listLenth % rowValue == 1 && listLenth != 1)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    qDebug()<<QString("性别")<<Person::ChooseSex(0)<<QString("性别")<<Person::ChooseSex(1);
 }
 
 /**
@@ -227,20 +195,20 @@ bool MainWindow::isChangePage(int listLenth,int rowValue)
  */
 void MainWindow::setTabBackGround()
 {
-    ui->tableWidget->setShowGrid(false);
-    ui->tableWidget_2->setShowGrid(false);
+    ui->tableWidget_stu->setShowGrid(false);  //去除表格边框
+    ui->tableWidget_eng->setShowGrid(false);
 
-    ui->tableWidget->setAlternatingRowColors(true);
-    ui->tableWidget_2->setAlternatingRowColors(true);
+    ui->tableWidget_stu->setAlternatingRowColors(true);     //隔行换色
+    ui->tableWidget_eng->setAlternatingRowColors(true);
 
-    ui->tableWidget->verticalHeader()->setVisible(false);
-    ui->tableWidget_2->verticalHeader()->setVisible(false);
+    ui->tableWidget_stu->verticalHeader()->setVisible(false);  //隐藏行表头
+    ui->tableWidget_eng->verticalHeader()->setVisible(false);
 
-    ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->tableWidget_stu->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);  // 表格填充布局,每行等比例显示
+    ui->tableWidget_eng->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
-    ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->tableWidget_2->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tableWidget_stu->setEditTriggers(QAbstractItemView::NoEditTriggers);   //禁止编辑表格内容
+    ui->tableWidget_eng->setEditTriggers(QAbstractItemView::NoEditTriggers);
 }
 
 /**
@@ -261,52 +229,45 @@ void MainWindow::slotOpenFile()
     QStringList t_lin;
     Student t_stu;
     QString line;
-    QString fileName = QFileDialog::getOpenFileName(this, tr("导入文件"),
+    QString fileName = QFileDialog::getOpenFileName(this, tr("openFile"),
                                                     tr("."),
                                                     tr("file(*.txt);;Allfile(*.*)"));
-    if(!fileName.isEmpty())
+    if(!fileName.isEmpty())         //文件不为空时
     {
         QFile file;
         file.setFileName(fileName);
-        if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        if(!file.open(QIODevice::ReadOnly | QIODevice::Text))  // 打开文件失败
         {
-            QMessageBox msg;
-            msg.setText("打开文件失败!");
+            QMessageBox msg(this);  // 添加this时，将该窗口与MainWindow置于同一对象树
+            msg.setText(tr("openFail"));     //打开文件
             msg.exec();
         }
         else
         {
             while (!file.atEnd())
             {
-                line = file.readLine();
-                t_lin.append(line);
+                line = file.readLine();         //读取文件每行数据
+                t_lin.append(line);             //将数据存入t_line
             }
-            file.close();
-
-            qDebug()<<t_lin;
-            t_lin.removeFirst();
+            file.close();                       //关闭文件
+            t_lin.removeFirst();                //去除表头
             qDebug()<<t_lin.at(1);
 
             if(ui->comboBox->currentIndex() == 0)
             {
-                for(int index = 0;index < t_lin.count();index++)
+                for(int index = 0;index < t_lin.count();index++)   //将文件内容存入相关链表
                 {
                     QString t_line = t_lin.at(index);
                     QStringList lineList = t_line.split(",");
-
-                    if(lineList.length() != 5)
-                    {
-                        qDebug()<<QString("111");
-                        return;
-                    }
-
                     t_stu.m_s_name = lineList.at(0);
-                    t_stu.m_s_sex = lineList.at(1);
+                    t_stu.m_sex = (Person::ChooseSex)lineList.at(1).toInt();
                     t_stu.m_i_age = lineList.at(2).toInt();
                     t_stu.setNum(lineList.at(3).toInt());
                     t_stu.setPer(lineList.at(4));
                     S_list.append(t_stu);
                 }
+                m_pPageShowStu->getFirstPage();                 //显示首页
+                setFormsShow(m_pPageShowStu->getThisPage(),getRowVaule());
             }
             else
             {
@@ -316,13 +277,14 @@ void MainWindow::slotOpenFile()
                     QString t_line = t_lin.at(index);
                     QStringList lineList = t_line.split(",");
                     t_eng.m_s_name = lineList.at(0);
-                    t_eng.m_s_sex = lineList.at(1);
+                    t_eng.m_sex = (Person::ChooseSex)lineList.at(1).toInt();
                     t_eng.m_i_age = lineList.at(2).toInt();
                     t_eng.setWorkAge(lineList.at(3).toInt());
                     E_list.append(t_eng);
                 }
+                m_pPageShowEng->getFirstPage();
+                setFormsShow(m_pPageShowEng->getThisPage(),getRowVaule());
             }
-            getFirstPage();
         }
     }
 }
@@ -332,11 +294,11 @@ void MainWindow::slotOpenFile()
  */
 void MainWindow::chooseRow()
 {
-    ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->tableWidget_2->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tableWidget_stu->setSelectionBehavior(QAbstractItemView::SelectRows); //点击时选择一行
+    ui->tableWidget_eng->setSelectionBehavior(QAbstractItemView::SelectRows);
 
-    ui->tableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    ui->tableWidget_2->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    ui->tableWidget_stu->setSelectionMode(QAbstractItemView::ExtendedSelection);   //表格填充
+    ui->tableWidget_eng->setSelectionMode(QAbstractItemView::ExtendedSelection);
 }
 
 /**
@@ -344,20 +306,19 @@ void MainWindow::chooseRow()
  */
 void MainWindow::slotDelRow()
 {
-    getThisPage();
     if(ui->comboBox->currentIndex() == 0)
     {
-        if(informationMessage())
+        if(informationMessage())                        //是否确认删除
         {
-            int t_del = ui->tableWidget->currentRow();
-            ui->tableWidget->removeRow(t_del);
-            ui->tableWidget->setRowCount(getRowVaule());
-            S_list.removeAt(t_del + (m_i_currPage-1) * getRowVaule());
-            if(S_list.size() % getRowVaule() == 0)
+            int t_del = ui->tableWidget_stu->currentRow();   //获取当前选择行
+            ui->tableWidget_stu->removeRow(t_del);           //表格删除该数据
+            ui->tableWidget_stu->setRowCount(getRowVaule());
+            S_list.removeAt(t_del + (m_i_stuPage-1) * getRowVaule());  //删除链表中内容
+            if(S_list.size() % getRowVaule() == 0)          //当前页所有数据被删除时，删除后当前表格没有数据，显示上一页内容
             {
-                m_i_currPage = m_i_currPage - 1;
-                setFormsShow(m_i_currPage,getRowVaule());
-                getALtogePage(getRowVaule());
+                m_i_stuPage = m_i_stuPage - 1;
+                setFormsShow(m_i_stuPage,getRowVaule());
+                m_pPageShowStu->getALtogePage(getRowVaule(),S_list.size());
             }
         }
     }
@@ -365,15 +326,15 @@ void MainWindow::slotDelRow()
     {
         if(informationMessage())
         {
-            int t_enu = ui->tableWidget_2->currentRow();
-            ui->tableWidget_2->removeRow(t_enu);
-            ui->tableWidget_2->setRowCount(getRowVaule());
-            E_list.removeAt(t_enu + (m_i_currPage-1)*getRowVaule());
+            int t_enu = ui->tableWidget_eng->currentRow();
+            ui->tableWidget_eng->removeRow(t_enu);
+            ui->tableWidget_eng->setRowCount(getRowVaule());
+            E_list.removeAt(t_enu + (m_i_engPage-1)*getRowVaule());
             if(E_list.size() % getRowVaule() == 0)
             {
-                m_i_currPage = m_i_currPage - 1;
-                setFormsShow(m_i_currPage,getRowVaule());
-                getALtogePage(getRowVaule());
+                m_i_engPage = m_i_engPage - 1;
+                setFormsShow(m_i_engPage,getRowVaule());
+                m_pPageShowEng->getALtogePage(getRowVaule(),E_list.size());
             }
         }
     }
@@ -381,17 +342,17 @@ void MainWindow::slotDelRow()
 
 /**
  * @brief 删除警告框
- * @return
+ * @return true: 删除 false: 取消
  */
 bool MainWindow::informationMessage()
 {
-    QString dlgTitle = tr("警告");
-    QString strInfo = tr("是否删除");
+    QString dlgTitle = tr("WORAING");       //警告
+    QString strInfo = tr("ISDEL?");         //删除
 
     QMessageBox::StandardButton result;
     result = QMessageBox::question(this,dlgTitle,strInfo,QMessageBox::Yes|QMessageBox::No|QMessageBox::Cancel);
 
-    if (result == QMessageBox::Yes)
+    if (result == QMessageBox::Yes)   //判断点击结果，确认返回true
     {
         return true;
     }
@@ -406,35 +367,42 @@ bool MainWindow::informationMessage()
  */
 void MainWindow::setRightClickMenu()
 {
-    m_pButtonMenu->addAction(m_pSaveAction);
-    m_pButtonMenu->addAction(m_pDelAction);
+    m_pButtonMenu->addAction(m_pSaveAction);    //保存菜单
+    m_pButtonMenu->addAction(m_pDelAction);     //删除菜单
 
-    ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-    ui->tableWidget_2->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->tableWidget_stu->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->tableWidget_eng->setContextMenuPolicy(Qt::CustomContextMenu);
 
-    connect(ui->tableWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(slotContextMenu(QPoint)));
-    connect(ui->tableWidget_2, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(slotContextMenu(QPoint)));
+    connect(ui->tableWidget_stu, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(slotContextMenu(QPoint)));
+    connect(ui->tableWidget_eng, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(slotContextMenu(QPoint)));
 }
 
+/**
+ * @brief 获取行数
+ * @return
+ */
 int MainWindow::getRowVaule()
 {
     return ui->spinBox_rowCount->value();
 }
 
-
+/**
+ * @brief 文本菜单
+ * @param pos
+ */
 void MainWindow::slotContextMenu(QPoint pos)
 {
     if(ui->comboBox->currentIndex() == 0)
     {
-        auto index = ui->tableWidget->indexAt(pos);
+        auto index = ui->tableWidget_stu->indexAt(pos);  //鼠标点击焦点
         if (index.isValid())
         {
-            m_pButtonMenu->exec(QCursor::pos());
+            m_pButtonMenu->exec(QCursor::pos());     //菜单栏
         }
     }
     else
     {
-        auto index = ui->tableWidget_2->indexAt(pos);
+        auto index = ui->tableWidget_eng->indexAt(pos);
         if (index.isValid())
         {
             m_pButtonMenu->exec(QCursor::pos());
@@ -442,44 +410,114 @@ void MainWindow::slotContextMenu(QPoint pos)
     }
 }
 
+/**
+ * @brief 修改每页显示条目数
+ * @return
+ */
 int MainWindow::slotChangeRow()
 {
-    int m_i_cgRow = ui->spinBox_rowCount->value();
-    ui->tableWidget->setRowCount(m_i_cgRow);
-    ui->tableWidget_2->setRowCount(m_i_cgRow);
-    ui->tableWidget->clearContents();
-    getLastPage();
+    int m_i_cgRow = ui->spinBox_rowCount->value();             //获取spin_box值
+    if(ui->comboBox->currentIndex() == 0)                       //学生类操作
+    {
+        ui->tableWidget_stu->setRowCount(m_i_cgRow);                //设置表格行数
+        ui->tableWidget_stu->clearContents();                       //刷新表格
+        m_pPageShowStu->getLastPage(getRowVaule(),S_list.size());
+        ui->tableWidget_stu->clearContents();
+        setFormsShow(m_pPageShowStu->getThisPage(),getRowVaule());
+    }
+    else
+    {
+        ui->tableWidget_eng->setRowCount(m_i_cgRow);
+        ui->tableWidget_eng->clearContents();
+        m_pPageShowEng->getLastPage(getRowVaule(),E_list.size());
+        ui->tableWidget_eng->clearContents();
+        setFormsShow(m_pPageShowEng->getThisPage(),getRowVaule());
+    }
     return m_i_cgRow;
 }
 
-
 /**
- * @brief 数据库连接
- * @return
+ * @brief 下一页
  */
-bool MainWindow::isConnectSql()
+void MainWindow::slotNextPage()
 {
-    qDebug()<<QString("11");
-    QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
-    db.setHostName("localhost");
-    db.setUserName("root");
-    db.setPassword("123456");
-    db.setDatabaseName("stu_manage");
-    if (!db.open())
+    int t_i_page = 0;
+    if(ui->comboBox->currentIndex() == 0)
     {
-        qDebug()<<db.lastError();
-        QMessageBox::critical(NULL, QObject::tr("无法连接"),
-                              QObject::tr("连接失败"), QMessageBox::Cancel);
-        return false;
+        t_i_page = m_pPageShowStu->getNextPage(getRowVaule(),S_list.size());
+        ui->tableWidget_stu->clearContents();
     }
     else
     {
-        QMessageBox::information(NULL,QObject::tr("sesscure"),
-                                 QObject::tr("连接成功"),QMessageBox::Cancel);
-        qDebug()<<QString("seccess");
-        sqlDataQuery();
-        setFormsShow(getThisPage(),getRowVaule());
-        return true;
+        t_i_page = m_pPageShowEng->getNextPage(getRowVaule(),E_list.size());
+        ui->tableWidget_eng->clearContents();
+    }
+    setFormsShow(t_i_page,getRowVaule());
+}
+
+/**
+ * @brief 首页
+ */
+void MainWindow::slotFirstPage()
+{
+    int t_i_page = 0;
+    if(ui->comboBox->currentIndex() == 0)
+    {
+        t_i_page = m_pPageShowStu->getFirstPage();
+    }
+    else
+    {
+        t_i_page = m_pPageShowEng->getFirstPage();
+    }
+    setFormsShow(t_i_page,getRowVaule());
+}
+
+/**
+ * @brief 上一页
+ */
+void MainWindow::slotPrePage()
+{
+    int t_i_page = 0;
+    if(ui->comboBox->currentIndex() == 0)
+    {
+        t_i_page = m_pPageShowStu->getPrePage();
+    }
+    else
+    {
+        t_i_page = m_pPageShowEng->getPrePage();
+    }
+    setFormsShow(t_i_page,getRowVaule());
+}
+
+/**
+ * @brief 末页
+ */
+void MainWindow::slotLastPage()
+{
+    int t_i_page = 0;
+    if(ui->comboBox->currentIndex() == 0)
+    {
+        t_i_page = m_pPageShowStu->getLastPage(getRowVaule(),S_list.size());
+        ui->tableWidget_stu->clearContents();
+    }
+    else
+    {
+        t_i_page = m_pPageShowEng->getLastPage(getRowVaule(),E_list.size());
+        ui->tableWidget_eng->clearContents();
+    }
+    setFormsShow(t_i_page - 1,getRowVaule());
+}
+
+/**
+ * @brief 连接数据库
+ */
+void MainWindow::slotConnectSql()
+{
+    bool t_isCon = m_pConnectDb->isConnectSql();
+    if(t_isCon)
+    {
+        m_pConnectDb->queryStuDataList();
+        setFormsShow(m_pPageShowStu->getThisPage(),getRowVaule());
     }
 }
 
@@ -487,35 +525,60 @@ bool MainWindow::isConnectSql()
  * @brief 输入框显示表格数据
  * @param item
  */
-void MainWindow::slotFileList(QTableWidgetItem *item)
+void MainWindow::slotStuFileList(QTableWidgetItem *item)   //学生类
 {
-
     int itemRow = item->row();
 
-    Student Sli;
-    Sli.m_s_name = ui->tableWidget->item(itemRow,0)->text();
-    Sli.m_i_age = ui->tableWidget->item(itemRow,2)->text().toInt();
-
-    int num = Sli.getNum();
-    QString pre = Sli.getPer();
-
-    num = ui->tableWidget->item(itemRow,3)->text().toInt();
-    pre = ui->tableWidget->item(itemRow,4)->text();
-    Sli.m_s_sex = ui->tableWidget->item(itemRow,1)->text();
-
-    if(Sli.m_s_sex == tr("男"))
+    if(ui->comboBox->currentIndex() == 0)
     {
-        ui->checkBox_man->setChecked(true);
+        Student Sli;
+        Sli.m_s_name = ui->tableWidget_stu->item(itemRow,0)->text();
+        Sli.m_i_age = ui->tableWidget_stu->item(itemRow,2)->text().toInt();
+
+        int t_num = Sli.getNum();
+        QString pre = Sli.getPer();
+        t_num = ui->tableWidget_stu->item(itemRow,3)->text().toInt();
+        pre = ui->tableWidget_stu->item(itemRow,4)->text();
+        Sli.m_sex = (Person::ChooseSex)ui->tableWidget_stu->item(itemRow,1)->text().toInt();
+
+        if(Sli.m_sex == tr("男"))
+        {
+            ui->checkBox_man->setChecked(true);
+        }
+        else
+        {
+            ui->checkBox_woman->setChecked(true);
+        }
+
+        ui->s_NameEdit->setText(Sli.m_s_name);
+        ui->s_AgeEdit->setText(QString::number(Sli.m_i_age));
+        ui->s_PreEdit->setText(pre);
+        ui->s_NumEdit->setText(QString::number(t_num));
+    }
+}
+
+void MainWindow::slotEngFileList(QTableWidgetItem *item)   //程序员类
+{
+    int itemRow = item->row();
+    Energer Eli;
+    Eli.m_s_name = ui->tableWidget_eng->item(itemRow,0)->text();
+    Eli.m_i_age = ui->tableWidget_eng->item(itemRow,2)->text().toInt();
+
+    int t_age = Eli.getWorkAge();
+    t_age = ui->tableWidget_eng->item(itemRow,3)->text().toInt();
+    Eli.m_sex = (Person::ChooseSex)ui->tableWidget_eng->item(itemRow,1)->text().toInt();
+
+    if(Eli.m_sex == tr("男"))
+    {
+        ui->engMan->setChecked(true);
     }
     else
     {
-        ui->checkBox_woman->setChecked(true);
+        ui->engWoman->setChecked(true);
     }
-
-    ui->s_NameEdit->setText(Sli.m_s_name);
-    ui->s_AgeEdit->setText(QString::number(Sli.m_i_age));
-    ui->s_PreEdit->setText(pre);
-    ui->s_NumEdit->setText(QString::number(num));
+    ui->e_NameEdit->setText(Eli.m_s_name);
+    ui->e_AgeEdit->setText(QString::number(Eli.m_i_age));
+    ui->e_WorkAgeEdit->setText(QString::number(t_age));
 }
 
 /**
@@ -552,27 +615,26 @@ void MainWindow::slotChangeCombox(int index)
 //TODO 只能保存一份
 void MainWindow::slotSaveFile()
 {
-    QString str;
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
                                                     "C:/Users/Yuji/Desktop/导出文件测试/save.txt",
                                                     tr("Images (*.txt)"));
     QFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))  //文件打开失败
     {
         return;
     }
     else
     {
-        if(ui->comboBox->currentIndex() == 0)
+        if(ui->comboBox->currentIndex() == 0)   //判断当前是否为学生类
         {
             QTextStream out(&file);
             QString t_item;
-            QString t_head = ("姓名,性别,年龄,学号,专业");
+            QString t_head = (tr("name,sex,age,num,pre"));   //设置表头    姓名，性别，年龄，学号，专业
             out << t_head<< "\n";
-            for (int i = 0; i<ui->tableWidget->columnCount(); i++)
+            for (int i = 0; i<ui->tableWidget_stu->columnCount(); i++)
             {
-                int t_row = ui->tableWidget->currentRow();
-                t_item = ui->tableWidget->item(t_row,i)->text();
+                int t_row = ui->tableWidget_stu->currentRow();  //获取当前选中行
+                t_item = ui->tableWidget_stu->item(t_row,i)->text();
                 out << t_item <<QString(",")<<QString("    ");
             }
         }
@@ -580,245 +642,96 @@ void MainWindow::slotSaveFile()
         {
             QTextStream out(&file);
             QString t_item;
-            QString t_head = ("姓名,性别,年龄,工龄");
+            QString t_head = (tr("name,sex,age,workAge"));  //姓名，性别，年龄，工龄
             out << t_head<< "\n";
-            for (int i = 0; i<ui->tableWidget_2->columnCount(); i++)
+            for (int i = 0; i<ui->tableWidget_eng->columnCount(); i++)
             {
-                int t_row = ui->tableWidget_2->currentRow();
-                t_item = ui->tableWidget_2->item(t_row,i)->text();
+                int t_row = ui->tableWidget_eng->currentRow();
+                t_item = ui->tableWidget_eng->item(t_row,i)->text();
                 out << t_item <<QString(",")<<QString("    ");
             }
         }
-    }
-}
-
-
-/**
- * @brief 获取当前页数
- * @return
- */
-int MainWindow::getThisPage()
-{
-    return m_i_currPage;
-}
-
-/**
- * @brief 获取总页数
- */
-int MainWindow::getALtogePage(int t_row)
-{
-    if(ui->comboBox->currentIndex() == 0)
-    {
-        if(S_list.size() % t_row != 0)
-        {
-            m_i_stuPage = S_list.size() / t_row+1;
-        }
-        else
-        {
-            m_i_stuPage = S_list.size() / t_row;
-        }
-        return m_i_stuPage;
-    }
-    else
-    {
-        if(E_list.size() % t_row != 0)
-        {
-            m_i_engPage = E_list.size() / t_row+1;
-        }
-        else
-        {
-            m_i_engPage = E_list.size() / t_row;
-        }
-        return  m_i_engPage;
-    }
-}
-
-/**
- * @brief 获取上一页
- * @return
- */
-int MainWindow::getPrePage()
-{
-    if(m_i_currPage == 0)
-    {
-        m_i_currPage = 0;
-    }
-    else
-    {
-        m_i_currPage = m_i_currPage-1;
-    }
-    setFormsShow(m_i_currPage,getRowVaule());
-    return m_i_currPage;
-}
-
-/**
- * @brief 获取下一页
- * @return
- */
-int MainWindow::getNextPage()
-{
-    getALtogePage(getRowVaule());
-    if(ui->comboBox->currentIndex() == 0)
-    {
-        if(m_i_currPage == m_i_stuPage-1)
-        {
-            return m_i_currPage;
-        }
-        else
-        {
-            m_i_currPage += 1;
-            ui->tableWidget->clearContents();
-            setFormsShow(m_i_currPage,getRowVaule());
-            qDebug()<<(m_i_currPage);
-        }
-    }
-    else
-    {
-        if(m_i_currPage == m_i_engPage-1)
-        {
-            return m_i_currPage;
-        }
-        else
-        {
-            m_i_currPage += 1;
-            ui->tableWidget_2->clearContents();
-            setFormsShow(m_i_currPage,getRowVaule());
-        }
-    }
-    return m_i_currPage;
-}
-
-/**
- * @brief 获取首页
- * @return
- */
-int MainWindow::getFirstPage()
-{
-    m_i_currPage = 0;
-    setFormsShow(m_i_currPage,getRowVaule());
-    qDebug()<<(m_i_currPage);
-    return  m_i_currPage;
-}
-
-/**
- * @brief 获取尾页
- * @return
- */
-int MainWindow::getLastPage()
-{
-    getALtogePage(getRowVaule());
-    int sTotal = m_i_stuPage-1;
-    if(ui->comboBox->currentIndex() == 0)
-    {
-        ui->tableWidget->clearContents();
-        setFormsShow(sTotal,getRowVaule());
-        m_i_currPage = sTotal;
-        return m_i_stuPage;
-    }
-    else
-    {
-        int e_Total = m_i_engPage-1;
-        ui->tableWidget_2->clearContents();
-        setFormsShow(e_Total,getRowVaule());
-        m_i_currPage = e_Total;
-        return m_i_engPage;
     }
 }
 
 /**
  * @brief 性别添加
- * @return
+ * @return true: 男性 false: 女性
  */
-bool MainWindow::slotSex()
+Person::ChooseSex MainWindow::slotSex()
 {
-    switch (m_pStuSexGroup->checkedId())
+    switch (m_pStuSexGroup->checkedId())  //判断性别，1为男性，0为女性
     {
     case 0:
-        return 1;
-        break;
+        return Student::man;
     case 1:
-        return 0;
-        break;
+        return Student::woman;
     }
-    return 0;
 }
 
-bool MainWindow::slotEngSex()
+/**
+ * @brief 程序员类性别添加
+ * @return true: 男性 false: 女性
+ */
+Person::ChooseSex MainWindow::slotEngSex()
 {
     switch (m_pEngSexGroup->checkedId())
     {
     case 0:
-        return 1;
+        return Energer::man;
         break;
     case 1:
-        return 0;
+        return Energer::woman;
         break;
     }
-    return 0;
 }
 
 /**
  * @brief 表格列表显示文字
- * @param page
+ * @param 当前页
+ * @param 当前表格条目数
  */
 void MainWindow::setFormsShow(int page,int t_row)
 {
-    QString str = (QString("%1/%2")).arg(page+1).arg(getALtogePage(t_row));
+    qDebug()<<page;
+    QString str;
+    if(ui->comboBox->currentIndex() == 0)  //判断是否为学生类
+    {
+        str = (QString("%1/%2")).arg(page + 1).arg(m_pPageShowStu->getALtogePage(t_row,S_list.size()));  //底部显示总页数及当前页数
+    }
+    else
+    {
+        str = (QString("%1/%2")).arg(page + 1).arg(m_pPageShowEng->getALtogePage(t_row,E_list.size()));
+    }
     ui->label_page->setText(str);
-    ui->tableWidget->setRowCount(t_row);
-    ui->tableWidget_2->setRowCount(t_row);
-    for(int row = 0;row <= t_row-1;row++)
+    ui->tableWidget_stu->setRowCount(t_row);
+    ui->tableWidget_eng->setRowCount(t_row);
+    for(int row = 0;row <= t_row - 1;row++)
     {
         switch (ui->comboBox->currentIndex())
         {
-        case 1:
+        case 0:     //当前为学生类时
         {
-            if (row<E_list.size())
+            if(row < S_list.size())
             {
-                Energer b = E_list.at((row+t_row*page));
-                for (int i = 0;i <= ui->tableWidget_2->columnCount();i++)
+                Student a = S_list.at(row + (t_row * page));
+                for (int i = 0;i <= ui->tableWidget_stu->columnCount();i++)
                 {
                     QTableWidgetItem *item = new QTableWidgetItem;
-                    switch (i)
-                    {
-                    case 0:
-                        item->setText(QString(b.m_s_name));
-                        break;
-                    case 1:
-                        item->setText(QString(b.m_s_sex));
-                        break;
-                    case 2:
-                        item->setText(QString::number(b.m_i_age));
-                        break;
-                    case 3:
-                        item->setText(QString::number(b.getWorkAge()));
-                        break;
-                    default:
-                        break;
-                    }
-                    ui->tableWidget_2->setItem(row,i,item);
-                }
-            }
-            if(row+t_row*page+1 == E_list.size())
-            {
-                return;
-            }
-        }
-        case 0:
-        {
-            if(row<S_list.size())
-            {
-                Student a = S_list.at(row+(t_row*page));
-                for (int i = 0;i <= ui->tableWidget->columnCount();i++)
-                {
-                    QTableWidgetItem *item = new QTableWidgetItem;
-                    switch (i)
+                    switch (i)              //表格与链表值对应
                     {
                     case 0:
                         item->setText(QString(a.m_s_name));
                         break;
                     case 1:
-                        item->setText(QString(a.m_s_sex));
+                        if(a.m_sex == Student::man)
+                        {
+                            item->setText(QString("男"));
+                        }
+                        else
+                        {
+                            item->setText(QString("女"));
+                        }
                         break;
                     case 2:
                         item->setText(QString::number(a.m_i_age));
@@ -831,71 +744,55 @@ void MainWindow::setFormsShow(int page,int t_row)
                     default:
                         break;
                     }
-                    ui->tableWidget->setItem(row,i,item);
+                    ui->tableWidget_stu->setItem(row,i,item);
                 }
             }
-            if(row+t_row*page+1 == S_list.size())
+            if(row+t_row*page + 1 == S_list.size())  //链表数据添加完毕时
+            {
+                return;
+            }
+            break;
+        }
+        case 1:             //当前为程序员类时
+        {
+            if (row < E_list.size())
+            {
+                Energer b = E_list.at(row + (t_row * page));
+                for (int i = 0;i <= ui->tableWidget_eng->columnCount();i++)
+                {
+                    QTableWidgetItem *item = new QTableWidgetItem;
+                    switch (i)
+                    {
+                    case 0:
+                        item->setText(QString(b.m_s_name));
+                        break;
+                    case 1:
+                        if(b.m_sex == 0)
+                        {
+                            item->setText(QString("男"));
+                        }
+                        else
+                        {
+                            item->setText(QString("女"));
+                        }
+                        break;
+                    case 2:
+                        item->setText(QString::number(b.m_i_age));
+                        break;
+                    case 3:
+                        item->setText(QString::number(b.getWorkAge()));
+                        break;
+                    default:
+                        break;
+                    }
+                    ui->tableWidget_eng->setItem(row,i,item);
+                }
+            }
+            if(row+t_row*page + 1 == E_list.size())
             {
                 return;
             }
         }
         }
     }
-}
-
-/**
- * @brief 数据库查询数据
- * @return
- */
-Student MainWindow::sqlDataQuery()
-{
-    Student stu;
-    QSqlQuery query;
-    query.exec("SELECT * from student;");
-    while(query.next())
-    {
-        stu.m_s_name = query.value(0).toString();
-        stu.m_s_sex = query.value(1).toString();
-        stu.m_i_age = query.value(2).toInt();
-        stu.setNum(query.value(3).toInt());
-        stu.setPer(query.value(4).toString());
-        S_list.append(stu);
-
-        //test ISO-8859-1 -> utf-8
-
-        QString pre_str = stu.m_s_sex;
-        QString after_str;
-        QByteArray pre_array ;
-
-        QTextCodec *code = QTextCodec::codecForUtfText(after_str.toUtf8());
-        after_str = code->toUnicode(after_str.toUtf8());
-
-        qDebug()<<__FILE__<<__FUNCTION__<<__LINE__<<"\n"
-               <<pre_str<<after_str<<pre_array<<code->name()
-              <<"\n";
-        //
-    }
-    return stu;
-}
-
-/**
- * @brief 数据库添加数据
- * @param stu
- * @return
- */
-bool MainWindow::isInsertData(Student stu)
-{
-    bool ret;;
-    QString cmd;
-    QSqlQuery query;
-    cmd = QString("INSERT INTO student (name,sex,age,num,pre) VALUES(%1,'%2',%3,%4,%5)")
-            .arg(stu.m_s_name).arg(stu.m_s_sex).arg(stu.m_i_age).arg(stu.getNum()).arg(stu.getPer());
-    ret = query.exec(cmd);
-    if(!ret)
-    {
-        QMessageBox::critical(NULL, QObject::tr("错误"),
-                              QObject::tr("添加失败"), QMessageBox::Cancel);
-        qDebug()<<query.lastError();
-    }
-    return ret;
 }
