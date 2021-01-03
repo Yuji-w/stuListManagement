@@ -135,13 +135,13 @@ void MainWindow::slotAddData()
     if(ui->comboBox->currentIndex() == 0)    //判断当前是否为学生类 0为学生类，1为程序员类
     {
         Student t_stu;
-        if(slotSex() == Student::man)              //获取性别 1为男性  TODO:性别使用枚举类型
+        if(ui->checkBox_man->isChecked() == true)              //获取性别 1为男性  TODO:性别使用枚举类型
         {
-            t_stu.m_sex = (Person::ChooseSex)ui->checkBox_man->text().toInt();
+            t_stu.m_sex = (Person::ChooseSex)QString("0").toInt();
         }
         else
         {
-            t_stu.m_sex = (Person::ChooseSex)ui->checkBox_woman->text().toInt();
+            t_stu.m_sex = (Person::ChooseSex)QString("1").toInt();
         }
         t_stu.m_s_name = ui->s_NameEdit->text();
         t_stu.m_i_age = ui->s_AgeEdit->text().toInt();
@@ -152,13 +152,13 @@ void MainWindow::slotAddData()
     else
     {
         Energer t_eng;
-        if(slotEngSex() == 1)
+        if(ui->engMan->isChecked() == true)
         {
-            t_eng.m_sex = (Person::ChooseSex)ui->engMan->text().toInt();
+            t_eng.m_sex = (Person::ChooseSex)QString("0").toInt();
         }
         else
         {
-            t_eng.m_sex =(Person::ChooseSex)ui->engWoman->text().toInt();
+            t_eng.m_sex =(Person::ChooseSex)QString("1").toInt();
         }
         t_eng.m_s_name = ui->e_NameEdit->text();    //获取当前填写文字内容
         t_eng.m_i_age = ui->e_AgeEdit->text().toInt();
