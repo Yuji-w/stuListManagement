@@ -92,6 +92,7 @@ private slots:
     void slotStuFileList(QTableWidgetItem *item);
     void slotEngFileList(QTableWidgetItem *item);
     void slotAddMore();
+    void slotChangeItem();
     void slotChangeTab(int index);
     void slotChangeCombox(int index);  
     void slotContextMenu(QPoint pos);

@@ -63,51 +63,44 @@ MainWindow::MainWindow(QWidget *parent)
 
     //添加数据
     connect(ui->addButton,SIGNAL(clicked()),this,SLOT(slotAddData()));
+
+    //连接数据库
     connect(ui->Menu_sql,SIGNAL(triggered()),this,SLOT(slotConnectSql()));
 
     //点击选项卡切换tab面板
     connect(ui->tabWidget_2,SIGNAL(currentChanged(int)),this,SLOT(slotChangeTab(int)));
     connect(ui->comboBox,SIGNAL(activated(int)),this,SLOT(slotChangeCombox(int)));
 
-    /**
-     * @brief 切换表格显示行数
-     */
+    // 切换表格显示行数
     connect(ui->spinBox_rowCount,SIGNAL(editingFinished()),this,SLOT(slotChangeRow()));
 
-    /**
-     * @brief 页数操作
-     */
+    connect(ui->toolButton_change,SIGNAL(clicked()),this,SLOT(slotChangeItem()));
+
+
+    // 页数操作
     connect(ui->BeginButton,SIGNAL(clicked()),this,SLOT(slotFirstPage()));
     connect(ui->NextButton,SIGNAL(clicked()),this,SLOT(slotNextPage()));
     connect(ui->BackButton,SIGNAL(clicked()),this,SLOT(slotPrePage()));
     connect(ui->LastButton,SIGNAL(clicked()),this,SLOT(slotLastPage()));
 
-    /**
-     * @brief 文件操作
-     */
+    // 文件操作
     connect(ui->OpenButton,SIGNAL(clicked()),this,SLOT(slotOpenFile()));
     connect(ui->pushButton_save,SIGNAL(clicked()),this,SLOT(slotSaveFile()));
 
-    /**
-     * @brief 删除
-     */
+    //删除
     connect(ui->delButton,SIGNAL(clicked()),this,SLOT(slotDelRow()));
     connect(ui->toolButton_add,SIGNAL(clicked()),this,SLOT(slotAddMore()));
 
     connect(ui->tableWidget_stu,SIGNAL(itemClicked(QTableWidgetItem*)),this,SLOT(slotStuFileList(QTableWidgetItem*)));
     connect(ui->tableWidget_eng,SIGNAL(itemClicked(QTableWidgetItem*)),this,SLOT(slotEngFileList(QTableWidgetItem*)));
 
-    /**
-     * @brief 添加性别
-     */
+    // 添加性别
     connect(ui->checkBox_man,SIGNAL(clicked()),this,SLOT(slotSex()));
     connect(ui->checkBox_woman,SIGNAL(clicked()),this,SLOT(slotSex()));
     connect(ui->engMan,SIGNAL(clicked()),this,SLOT(slotEngSex()));
     connect(ui->engWoman,SIGNAL(clicked()),this,SLOT(slotEngSex()));
 
-    /**
-     * @brief 右键点击事件
-     */
+    // 右键点击事件
     connect(m_pSaveAction,SIGNAL(triggered()),this,SLOT(slotSaveFile()));
     connect(m_pDelAction,SIGNAL(triggered()),this,SLOT(slotDelRow()));
 };
@@ -135,7 +128,7 @@ void MainWindow::slotAddData()
     if(ui->comboBox->currentIndex() == 0)    //判断当前是否为学生类 0为学生类，1为程序员类
     {
         Student t_stu;
-        if(ui->checkBox_man->isChecked() == true)              //获取性别 1为男性  TODO:性别使用枚举类型
+        if(ui->checkBox_man->isChecked() == true)              //获取性别选中状态 true为男性  TODO:性别使用枚举类型
         {
             t_stu.m_sex = (Person::ChooseSex)QString("0").toInt();
         }
@@ -539,9 +532,9 @@ void MainWindow::slotStuFileList(QTableWidgetItem *item)   //学生类
         QString pre = Sli.getPer();
         t_num = ui->tableWidget_stu->item(itemRow,3)->text().toInt();
         pre = ui->tableWidget_stu->item(itemRow,4)->text();
-        Sli.m_sex = (Person::ChooseSex)ui->tableWidget_stu->item(itemRow,1)->text().toInt();
+        QString str = ui->tableWidget_stu->item(itemRow,1)->text();
 
-        if(Sli.m_sex == tr("男"))
+        if(str == tr("男"))
         {
             ui->checkBox_man->setChecked(true);
         }
@@ -566,9 +559,9 @@ void MainWindow::slotEngFileList(QTableWidgetItem *item)   //程序员类
 
     int t_age = Eli.getWorkAge();
     t_age = ui->tableWidget_eng->item(itemRow,3)->text().toInt();
-    Eli.m_sex = (Person::ChooseSex)ui->tableWidget_eng->item(itemRow,1)->text().toInt();
+    QString str = ui->tableWidget_eng->item(itemRow,1)->text();
 
-    if(Eli.m_sex == tr("男"))
+    if(str == tr("男"))
     {
         ui->engMan->setChecked(true);
     }
@@ -590,6 +583,28 @@ void MainWindow::slotAddMore()
     for (int i = 0;i < t_number;i++)
     {
         slotAddData();
+    }
+}
+
+void MainWindow::slotChangeItem()
+{
+    qDebug()<<QString("aaaaaaaaa");
+    if(ui->comboBox->currentIndex() == 0)
+    {
+        Student sli;
+        sli.m_s_name = ui->e_NameEdit->text();
+        if(ui->checkBox_man->isChecked() == true)
+        {
+            sli.m_sex = (Person::ChooseSex)QString("0").toInt();
+        }
+        else
+        {
+            sli.m_sex = (Person::ChooseSex)QString("1").toInt();
+        }
+        sli.m_i_age = ui->s_AgeEdit->text().toInt();
+        sli.setNum(ui->s_NumEdit->text().toInt());
+        sli.setPer(ui->s_PreEdit->text());
+        S_list.replace(getRowVaule()*m_pPageShowStu->getPrePage() + ui->tableWidget_stu->currentRow(),sli);
     }
 }
 
@@ -667,6 +682,7 @@ Person::ChooseSex MainWindow::slotSex()
     case 1:
         return Student::woman;
     }
+
 }
 
 /**

@@ -349,6 +349,13 @@ font: 87 26pt &quot;Arial&quot;;
            </widget>
           </item>
           <item>
+           <widget class="QToolButton" name="toolButton_change">
+            <property name="text">
+             <string>修改</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QToolButton" name="toolButton_add">
             <property name="text">
              <string>量添加</string>
