@@ -542,7 +542,6 @@ void MainWindow::slotStuFileList(QTableWidgetItem *item)   //学生类
         {
             ui->checkBox_woman->setChecked(true);
         }
-
         ui->s_NameEdit->setText(Sli.m_s_name);
         ui->s_AgeEdit->setText(QString::number(Sli.m_i_age));
         ui->s_PreEdit->setText(pre);
@@ -592,7 +591,7 @@ void MainWindow::slotChangeItem()
     if(ui->comboBox->currentIndex() == 0)
     {
         Student sli;
-        sli.m_s_name = ui->e_NameEdit->text();
+        sli.m_s_name = ui->s_NameEdit->text();
         if(ui->checkBox_man->isChecked() == true)
         {
             sli.m_sex = (Person::ChooseSex)QString("0").toInt();
@@ -605,6 +604,24 @@ void MainWindow::slotChangeItem()
         sli.setNum(ui->s_NumEdit->text().toInt());
         sli.setPer(ui->s_PreEdit->text());
         S_list.replace(getRowVaule()*m_pPageShowStu->getPrePage() + ui->tableWidget_stu->currentRow(),sli);
+        setFormsShow(m_pPageShowStu->getThisPage(),getRowVaule());
+    }
+    else
+    {
+        Energer eng;
+        eng.m_s_name = ui->e_NameEdit->text();
+        if(ui->engMan->isChecked() == true)
+        {
+            eng.m_sex = (Person::ChooseSex)QString("0").toInt();
+        }
+        else
+        {
+            eng.m_sex = (Person::ChooseSex)QString("1").toInt();
+        }
+        eng.m_i_age = ui->e_AgeEdit->text().toInt();
+        eng.setWorkAge(ui->e_WorkAgeEdit->text().toInt());
+        E_list.replace(getRowVaule()*m_pPageShowEng->getPrePage() + ui->tableWidget_eng->currentRow(),eng);
+        setFormsShow(m_pPageShowEng->getThisPage(),getRowVaule());
     }
 }
 
