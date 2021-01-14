@@ -44,6 +44,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tableWidget_eng->setRowCount(DEFAULT_PAGE_NUM);
     ui->spinBox_rowCount->setValue(DEFAULT_PAGE_NUM);
 
+    //鼠标悬浮提示框
+    ui->addButton->setToolTip(tr("tianjia"));
+    ui->spinBox_rowCount->setToolTip(tr("changeRow"));
+
     m_pStuSexGroup = new QButtonGroup(this);
     m_pStuSexGroup->addButton(ui->checkBox_man,0);
     m_pStuSexGroup->addButton(ui->checkBox_woman,1);
